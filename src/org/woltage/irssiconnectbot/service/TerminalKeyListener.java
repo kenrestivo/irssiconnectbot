@@ -81,6 +81,7 @@ public class TerminalKeyListener implements OnKeyListener, OnSharedPreferenceCha
     public final static int HC_META_CTRL_ON = 4096;
     public final static int KEYCODE_PAGE_UP = 92;
     public final static int KEYCODE_PAGE_DOWN = 93;
+	public final static int KEYCODE_EOT = 0x4; // This is the back button on the keyboard.
 
     // All the transient key codes
     public final static int META_TRANSIENT = META_CTRL_ON | META_ALT_ON
@@ -144,12 +145,24 @@ public class TerminalKeyListener implements OnKeyListener, OnSharedPreferenceCha
                 "!@#$%&*?/:_\"'()-+;,.€¥£~=\\^[]¡¿{}<>|Þþ§©®±÷ÖöÄäÅåØøÆæÜüẞß¶µ");
     };
 
+	private void showKey(int keyCode){
+		String hex_value = keyCode < 0
+			? "-" + Integer.toHexString(-keyCode)
+			: Integer.toHexString(keyCode);
+		Log.d(TAG, "got key: 0x" + hex_value);
+	}
+
     /**
      * Handle onKey() events coming down from a {@link TerminalView} above us.
      * Modify the keys to make more sense to a host then pass it to the transport.
      */
     public boolean onKey(View v, int keyCode, KeyEvent event) {
         try {
+
+
+			// debug code
+			//showKey(keyCode);
+
             // skip keys if we aren't connected yet or have been disconnected
             if (bridge.isDisconnected() || bridge.transport == null)
                 return false;
@@ -189,6 +202,13 @@ public class TerminalKeyListener implements OnKeyListener, OnSharedPreferenceCha
 
                 return false;
             }
+
+			if ( // (hardKeyboard && !hardKeyboardHidden) && // does not work
+			     keyCode == KEYCODE_EOT){
+				sendEscape();
+				return true;
+			}
+
 
             // check for terminal resizing keys
             if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
@@ -291,6 +311,7 @@ public class TerminalKeyListener implements OnKeyListener, OnSharedPreferenceCha
                     return true;
                 }
 
+
                 if (uchar < 0x80) {
                     bridge.transport.write(uchar);
                 } else {
@@ -377,7 +398,7 @@ public class TerminalKeyListener implements OnKeyListener, OnSharedPreferenceCha
 
                 // try handling keymode shortcuts
                 if (PreferenceConstants.KEYBOARDFIX_KEYMODE_RIGHT.equals(keymode)) {
-                    switch (keyCode) {
+					switch(keyCode) {
                     case KeyEvent.KEYCODE_ALT_RIGHT:
                         metaState |= META_SLASH;
                         return true;
